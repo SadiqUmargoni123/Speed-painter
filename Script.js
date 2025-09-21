@@ -10,7 +10,7 @@ const ctx = canvas.getContext("2d");
 let img = new Image();
 let recorder, chunks = [];
 let handImg = new Image();
-handImg.src = "hand.png"; // optional hand image if you add it
+handImg.src = "download%20(5).jpeg"; // optional hand image if you add it
 
 // Load uploaded image
 upload.addEventListener("change", e => {
