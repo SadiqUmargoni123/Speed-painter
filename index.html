@@ -1,79 +1,70 @@
-const upload = document.getElementById("upload");
-const startBtn = document.getElementById("startBtn");
-const downloadBtn = document.getElementById("downloadBtn");
-const speedSlider = document.getElementById("speed");
-const styleSelect = document.getElementById("style");
-const handToggle = document.getElementById("handToggle");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-
-let img = new Image();
-let recorder, chunks = [];
-let handImg = new Image();
-handImg.src = "hand.png";
-
-// Load uploaded image
-upload.addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-});
-
-// Simulated drawing
-function drawImageStepByStep(speed, style, showHand) {
-  let x = 0, y = 0, step = 5;
-  const interval = setInterval(() => {
-    let w = step, h = step;
-
-    // Apply style
-    if (style === "sketch") {
-      ctx.strokeStyle = "black";
-      ctx.strokeRect(x, y, w, h);
-    } else if (style === "ink") {
-      ctx.fillStyle = "black";
-      ctx.fillRect(x, y, w, h);
-    } else if (style === "color") {
-      let pixel = ctx.getImageData(x, y, 1, 1).data;
-      ctx.fillStyle = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
-      ctx.fillRect(x, y, w, h);
-    } else {
-      ctx.drawImage(img, x, y, w, h, x, y, w, h);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Painter App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+      background: #f8f9fa;
     }
-
-    // Hand overlay
-    if (showHand) {
-      ctx.drawImage(handImg, x - 30, y - 30, 60, 60);
+    h1 {
+      color: #333;
     }
-
-    x += speed;
-    if (x >= img.width) {
-      x = 0;
-      y += speed;
+    canvas {
+      border: 2px solid #000;
+      margin-top: 20px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
     }
-    if (y >= img.height) {
-      clearInterval(interval);
-      stopRecording();
-      downloadBtn.disabled = false;
+    button, input, select {
+      margin: 8px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      font-size: 14px;
+      cursor: pointer;
     }
-  }, 30);
-}
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎨 Speed Painter</h1>
 
-// Start recording + drawing
-startBtn.addEventListener("click", () => {
-  chunks = [];
-  let stream = canvas.captureStream(30); // 30 FPS
-  recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
-  recorder.ondataavailable = e => chunks.push(e.data);
-  recorder.onstop = saveVideo;
+  <input type="file" id="upload"><br>
+
+  <label>Speed:
+    <input type="range" id="speed" min="1" max="20" value="5">
+  </label><br>
+
+  <label>Style:
+    <select id="style">
+      <option value="sketch">Sketch</option>
+      <option value="ink">Ink</option>
+      <option value="color">Color</option>
+      <option value="normal">Normal</option>
+    </select>
+  </label><br>
+
+  <label>
+    <input type="checkbox" id="handToggle"> Show Hand
+  </label><br>
+
+  <button id="startBtn">Start Drawing</button>
+  <button id="downloadBtn" disabled>Download Video</button>
+
+  <canvas id="canvas"></canvas>
+
+  <script src="script.js"></script>
+</body>
+</html>  recorder.onstop = saveVideo;
   recorder.start();
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
