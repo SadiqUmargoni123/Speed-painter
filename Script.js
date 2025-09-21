@@ -10,7 +10,7 @@ const ctx = canvas.getContext("2d");
 let img = new Image();
 let recorder, chunks = [];
 let handImg = new Image();
-handImg.src = "hand.png";
+handImg.src = "hand.png"; // optional hand image if you add it
 
 // Load uploaded image
 upload.addEventListener("change", e => {
@@ -28,9 +28,10 @@ upload.addEventListener("change", e => {
   reader.readAsDataURL(file);
 });
 
-// Simulated drawing
+// Simulated drawing function
 function drawImageStepByStep(speed, style, showHand) {
   let x = 0, y = 0, step = 5;
+
   const interval = setInterval(() => {
     let w = step, h = step;
 
@@ -59,6 +60,7 @@ function drawImageStepByStep(speed, style, showHand) {
       x = 0;
       y += speed;
     }
+
     if (y >= img.height) {
       clearInterval(interval);
       stopRecording();
@@ -72,11 +74,35 @@ startBtn.addEventListener("click", () => {
   chunks = [];
   let stream = canvas.captureStream(30); // 30 FPS
   recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+
   recorder.ondataavailable = e => chunks.push(e.data);
   recorder.onstop = saveVideo;
-  recorder.start();
 
+  recorder.start();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawImageStepByStep(
+    parseInt(speedSlider.value),
+    styleSelect.value,
+    handToggle.checked
+  );
+});
+
+// Stop recording
+function stopRecording() {
+  recorder.stop();
+}
+
+// Save as video
+function saveVideo() {
+  const blob = new Blob(chunks, { type: "video/webm" });
+  const url = URL.createObjectURL(blob);
+  downloadBtn.onclick = () => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "drawing.webm";
+    a.click();
+  };
+}  ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawImageStepByStep(
     parseInt(speedSlider.value),
     styleSelect.value,
