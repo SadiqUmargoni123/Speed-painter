@@ -1,79 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Speed Painter App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎨 DrawIt - Speed Painter</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 20px;
-      background: #f8f9fa;
+      margin: 0;
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #f9fafc, #e8ecf3);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      padding: 30px;
+      max-width: 800px;
+      width: 100%;
     }
     h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2rem;
       color: #333;
     }
-    canvas {
-      border: 2px solid #000;
-      margin-top: 20px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 20px;
     }
-    button, input, select {
-      margin: 8px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #333;
+    .controls label {
+      display: flex;
+      flex-direction: column;
       font-size: 14px;
-      cursor: pointer;
+      color: #444;
+      align-items: center;
+    }
+    input[type="file"], select, input[type="range"], button {
+      margin-top: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #bbb;
+      font-size: 14px;
+    }
+    button {
+      background: #0077ff;
+      color: #fff;
+      border: none;
+      transition: background 0.3s;
+    }
+    button:hover:not(:disabled) {
+      background: #005fcc;
     }
     button:disabled {
       background: #ccc;
       cursor: not-allowed;
     }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      border: 2px solid #333;
+      border-radius: 10px;
+      max-width: 100%;
+    }
   </style>
 </head>
 <body>
-  <h1>🎨 Speed Painter</h1>
+  <div class="container">
+    <h1>🎨 DrawIt - Speed Painter</h1>
+    <div class="controls">
+      <label>
+        Upload Image
+        <input type="file" id="upload">
+      </label>
+      <label>
+        Speed
+        <input type="range" id="speed" min="1" max="20" value="5">
+      </label>
+      <label>
+        Style
+        <select id="style">
+          <option value="sketch">Sketch</option>
+          <option value="ink">Ink</option>
+          <option value="color">Color</option>
+          <option value="normal">Normal</option>
+        </select>
+      </label>
+      <label>
+        <input type="checkbox" id="handToggle"> Show Hand
+      </label>
+    </div>
+    <div class="controls">
+      <button id="startBtn">Start Drawing</button>
+      <button id="downloadBtn" disabled>Download Video</button>
+    </div>
+    <canvas id="canvas"></canvas>
+  </div>
 
-  <input type="file" id="upload"><br>
+  <script>
+    const upload = document.getElementById("upload");
+    const startBtn = document.getElementById("startBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const speedSlider = document.getElementById("speed");
+    const styleSelect = document.getElementById("style");
+    const handToggle = document.getElementById("handToggle");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
 
-  <label>Speed:
-    <input type="range" id="speed" min="1" max="20" value="5">
-  </label><br>
+    let img = new Image();
+    let recorder, chunks = [];
+    let handImg = new Image();
+    handImg.src = "download%20(5).jpeg"; // your hand image file in repo
 
-  <label>Style:
-    <select id="style">
-      <option value="sketch">Sketch</option>
-      <option value="ink">Ink</option>
-      <option value="color">Color</option>
-      <option value="normal">Normal</option>
-    </select>
-  </label><br>
+    // Load uploaded image
+    upload.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
 
-  <label>
-    <input type="checkbox" id="handToggle"> Show Hand
-  </label><br>
+    // Drawing simulation
+    function drawImageStepByStep(speed, style, showHand) {
+      let x = 0, y = 0, step = 5;
+      const interval = setInterval(() => {
+        let w = step, h = step;
+        if (style === "sketch") {
+          ctx.strokeStyle = "black";
+          ctx.strokeRect(x, y, w, h);
+        } else if (style === "ink") {
+          ctx.fillStyle = "black";
+          ctx.fillRect(x, y, w, h);
+        } else if (style === "color") {
+          let pixel = ctx.getImageData(x, y, 1, 1).data;
+          ctx.fillStyle = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
+          ctx.fillRect(x, y, w, h);
+        } else {
+          ctx.drawImage(img, x, y, w, h, x, y, w, h);
+        }
 
-  <button id="startBtn">Start Drawing</button>
-  <button id="downloadBtn" disabled>Download Video</button>
+        if (showHand) {
+          ctx.drawImage(handImg, x - 30, y - 30, 60, 60);
+        }
 
-  <canvas id="canvas"></canvas>
+        x += speed;
+        if (x >= img.width) {
+          x = 0;
+          y += speed;
+        }
+        if (y >= img.height) {
+          clearInterval(interval);
+          stopRecording();
+          downloadBtn.disabled = false;
+        }
+      }, 30);
+    }
 
-  <script src="script.js"></script>
+    // Start recording
+    startBtn.addEventListener("click", () => {
+      if (!img.src) {
+        alert("Please upload an image first!");
+        return;
+      }
+      chunks = [];
+      let stream = canvas.captureStream(30);
+      recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = saveVideo;
+      recorder.start();
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawImageStepByStep(
+        parseInt(speedSlider.value),
+        styleSelect.value,
+        handToggle.checked
+      );
+    });
+
+    function stopRecording() {
+      recorder.stop();
+    }
+
+    function saveVideo() {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      downloadBtn.onclick = () => {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "drawing.webm";
+        a.click();
+      };
+    }
+  </script>
 </body>
-</html>  recorder.onstop = saveVideo;
-  recorder.start();
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawImageStepByStep(
-    parseInt(speedSlider.value),
-    styleSelect.value,
-    handToggle.checked
-  );
-});
+</html>});
 
 // Stop recording
 function stopRecording() {
